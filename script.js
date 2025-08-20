@@ -4,42 +4,48 @@ const searchInput = document.getElementById("search");
 
 let favorites = [];
 
-// 1. Conectarse a la API y mostrar lista
-async function getPokemons(limit = 20, offset = 0) {
-  const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
-  const data = await res.json();
+// 🔹 Renderizar lista de pokémon
+async function getPokemons(limit = 10, offset = 0) {
+  try {
+    const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
+    const data = await res.json();
 
-  pokemonListEl.innerHTML = ""; // limpio lista antes de renderizar
+    pokemonListEl.innerHTML = ""; // limpio lista antes de renderizar
 
-  for (const poke of data.results) {
-    const pokeRes = await fetch(poke.url);
-    const pokeData = await pokeRes.json();
+    for (const poke of data.results) {
+      const pokeRes = await fetch(poke.url);
+      const pokeData = await pokeRes.json();
 
-    const li = document.createElement("li");
-    li.innerHTML = `
-      <span>${pokeData.name}</span>
-      <img src="${pokeData.sprites.front_default}" alt="${pokeData.name}">
-      <button onclick="addFavorite('${pokeData.name}', '${pokeData.sprites.front_default}')">⭐</button>
-    `;
-    pokemonListEl.appendChild(li);
+      const isFavorite = favorites.find(p => p.name === pokeData.name);
+
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span>${pokeData.name}</span>
+        <img src="${pokeData.sprites.front_default}" alt="${pokeData.name}">
+        <button onclick="toggleFavorite('${pokeData.name}', '${pokeData.sprites.front_default}')">
+          ${isFavorite ? "⭐" : "☆"}
+        </button>
+      `;
+      pokemonListEl.appendChild(li);
+    }
+  } catch (err) {
+    console.error("Error al traer pokémon:", err);
   }
 }
 
-// 2. Agregar a favoritos
-function addFavorite(name, img) {
-  if (!favorites.find(p => p.name === name)) {
+// 🔹 Alternar favoritos
+function toggleFavorite(name, img) {
+  const exists = favorites.find(p => p.name === name);
+  if (exists) {
+    favorites = favorites.filter(p => p.name !== name);
+  } else {
     favorites.push({ name, img });
-    renderFavorites();
   }
-}
-
-// 3. Eliminar de favoritos
-function removeFavorite(name) {
-  favorites = favorites.filter(p => p.name !== name);
   renderFavorites();
+  getPokemons(); // refresco lista para actualizar estrellas
 }
 
-// 4. Mostrar favoritos
+// 🔹 Renderizar favoritos
 function renderFavorites() {
   favoritesEl.innerHTML = "";
   favorites.forEach(p => {
@@ -47,13 +53,13 @@ function renderFavorites() {
     li.innerHTML = `
       <span>${p.name}</span>
       <img src="${p.img}" alt="${p.name}">
-      <button onclick="removeFavorite('${p.name}')">❌</button>
+      <button onclick="toggleFavorite('${p.name}', '${p.img}')">❌</button>
     `;
     favoritesEl.appendChild(li);
   });
 }
 
-// 5. Buscador
+// 🔹 Buscador
 searchInput.addEventListener("input", async (e) => {
   const query = e.target.value.toLowerCase();
   if (query.length > 2) {
@@ -64,11 +70,15 @@ searchInput.addEventListener("input", async (e) => {
         return;
       }
       const pokeData = await res.json();
+      const isFavorite = favorites.find(p => p.name === pokeData.name);
+
       pokemonListEl.innerHTML = `
         <li>
           <span>${pokeData.name}</span>
           <img src="${pokeData.sprites.front_default}" alt="${pokeData.name}">
-          <button onclick="addFavorite('${pokeData.name}', '${pokeData.sprites.front_default}')">⭐</button>
+          <button onclick="toggleFavorite('${pokeData.name}', '${pokeData.sprites.front_default}')">
+            ${isFavorite ? "⭐" : "☆"}
+          </button>
         </li>
       `;
     } catch (err) {
@@ -79,5 +89,5 @@ searchInput.addEventListener("input", async (e) => {
   }
 });
 
-// Inicial
+// 🔹 Inicial
 getPokemons();
